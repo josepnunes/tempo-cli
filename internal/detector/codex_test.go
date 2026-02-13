@@ -209,8 +209,52 @@ this is not valid json
 	}
 }
 
+func TestExtractFilesFromPatch(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  []string
+	}{
+		{
+			name:  "single file",
+			input: "*** Begin Patch\n*** Update File: src/main.go\n@@ -1,3 +1,4 @@\n+import \"fmt\"\n",
+			want:  []string{"src/main.go"},
+		},
+		{
+			name:  "multiple files",
+			input: "*** Begin Patch\n*** Update File: src/main.go\n@@ -1,3 +1,4 @@\n+line\n*** Update File: src/utils.go\n@@ -5,2 +5,3 @@\n+line\n",
+			want:  []string{"src/main.go", "src/utils.go"},
+		},
+		{
+			name:  "duplicate file deduped",
+			input: "*** Update File: a.go\n@@ ...\n*** Update File: a.go\n@@ ...\n",
+			want:  []string{"a.go"},
+		},
+		{
+			name:  "no update file lines",
+			input: "*** Begin Patch\nsome other content\n",
+			want:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := extractFilesFromPatch(tt.input)
+			if len(got) != len(tt.want) {
+				t.Errorf("got %v, want %v", got, tt.want)
+				return
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("got[%d] = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
 func TestParseCodexSession_ApplyPatch(t *testing.T) {
-	content := `{"timestamp":"2026-02-10T10:25:57.694Z","type":"response_item","payload":{"type":"function_call","name":"apply_patch","arguments":"{\"path\":\"src/main.go\"}"}}`
+	content := `{"timestamp":"2026-02-10T10:25:57.694Z","type":"response_item","payload":{"type":"custom_tool_call","name":"apply_patch","input":"*** Begin Patch\n*** Update File: src/main.go\n@@ -1,3 +1,4 @@\n+import \"fmt\"\n"}}`
 
 	path := writeTestJSONL(t, content)
 	info, err := parseCodexSession(path)
@@ -222,6 +266,25 @@ func TestParseCodexSession_ApplyPatch(t *testing.T) {
 	}
 
 	wantFiles := []string{"src/main.go"}
+	gotFiles := sortedKeys(info.FilesWritten)
+	if !equal(gotFiles, wantFiles) {
+		t.Errorf("files: got %v, want %v", gotFiles, wantFiles)
+	}
+}
+
+func TestParseCodexSession_ApplyPatchMultiFile(t *testing.T) {
+	content := `{"timestamp":"2026-02-10T10:25:57.694Z","type":"response_item","payload":{"type":"custom_tool_call","name":"apply_patch","input":"*** Begin Patch\n*** Update File: src/main.go\n@@ -1,3 +1,4 @@\n+line\n*** Update File: src/utils.go\n@@ -5,2 +5,3 @@\n+line\n"}}`
+
+	path := writeTestJSONL(t, content)
+	info, err := parseCodexSession(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info == nil {
+		t.Fatal("expected non-nil info")
+	}
+
+	wantFiles := []string{"src/main.go", "src/utils.go"}
 	gotFiles := sortedKeys(info.FilesWritten)
 	if !equal(gotFiles, wantFiles) {
 		t.Errorf("files: got %v, want %v", gotFiles, wantFiles)

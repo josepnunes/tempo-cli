@@ -45,10 +45,34 @@ type codexResponseItem struct {
 	Type      string `json:"type"`
 	Name      string `json:"name"`
 	Arguments string `json:"arguments"`
+	Input     string `json:"input"` // raw patch text for custom_tool_call
 }
 
 type codexExecArgs struct {
 	Cmd string `json:"cmd"`
+}
+
+// applyPatchFilePattern extracts file paths from apply_patch input text.
+// Matches lines like: *** Update File: src/main.go
+var applyPatchFilePattern = regexp.MustCompile(`\*\*\* Update File: (.+)`)
+
+// extractFilesFromPatch parses an apply_patch input string and returns
+// file paths referenced by "*** Update File:" lines.
+func extractFilesFromPatch(input string) []string {
+	matches := applyPatchFilePattern.FindAllStringSubmatch(input, -1)
+	var files []string
+	seen := make(map[string]bool)
+	for _, m := range matches {
+		if len(m) < 2 {
+			continue
+		}
+		p := strings.TrimSpace(m[1])
+		if p != "" && !seen[p] {
+			seen[p] = true
+			files = append(files, p)
+		}
+	}
+	return files
 }
 
 // Regex patterns for extracting file paths from shell commands.
@@ -256,26 +280,22 @@ func parseCodexSession(jsonlPath string) (*SessionInfo, error) {
 			if err := json.Unmarshal(line.Payload, &ri); err != nil {
 				continue
 			}
-			if ri.Type != "function_call" {
-				continue
-			}
-			if ri.Name == "exec_command" {
-				var args codexExecArgs
-				if err := json.Unmarshal([]byte(ri.Arguments), &args); err != nil {
-					continue
+			switch ri.Type {
+			case "function_call":
+				if ri.Name == "exec_command" {
+					var args codexExecArgs
+					if err := json.Unmarshal([]byte(ri.Arguments), &args); err != nil {
+						continue
+					}
+					for _, fp := range extractFilesFromCmd(args.Cmd) {
+						info.FilesWritten[fp] = struct{}{}
+					}
 				}
-				for _, fp := range extractFilesFromCmd(args.Cmd) {
-					info.FilesWritten[fp] = struct{}{}
-				}
-			}
-			// apply_patch may reference files directly — handle if seen
-			if ri.Name == "apply_patch" {
-				// apply_patch arguments typically contain the file path
-				var args struct {
-					Path string `json:"path"`
-				}
-				if err := json.Unmarshal([]byte(ri.Arguments), &args); err == nil && args.Path != "" {
-					info.FilesWritten[args.Path] = struct{}{}
+			case "custom_tool_call":
+				if ri.Name == "apply_patch" {
+					for _, fp := range extractFilesFromPatch(ri.Input) {
+						info.FilesWritten[fp] = struct{}{}
+					}
 				}
 			}
 		}
