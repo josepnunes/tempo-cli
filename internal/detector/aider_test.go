@@ -65,10 +65,14 @@ func TestDetectAider_NoFile(t *testing.T) {
 func TestDetectAider_OldFile(t *testing.T) {
 	dir := t.TempDir()
 	historyPath := filepath.Join(dir, ".aider.chat.history.md")
-	os.WriteFile(historyPath, []byte(testAiderHistory), 0644)
+	if err := os.WriteFile(historyPath, []byte(testAiderHistory), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	old := time.Now().Add(-5 * 24 * time.Hour)
-	os.Chtimes(historyPath, old, old)
+	if err := os.Chtimes(historyPath, old, old); err != nil {
+		t.Fatal(err)
+	}
 
 	info, err := detectAider(dir, 72*time.Hour)
 	if err != nil {
@@ -82,7 +86,9 @@ func TestDetectAider_OldFile(t *testing.T) {
 func TestDetectAider_NoFilePaths(t *testing.T) {
 	dir := t.TempDir()
 	content := "# aider chat started\n\nsome regular text\n> output line\n"
-	os.WriteFile(filepath.Join(dir, ".aider.chat.history.md"), []byte(content), 0644)
+	if err := os.WriteFile(filepath.Join(dir, ".aider.chat.history.md"), []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	info, err := detectAider(dir, 72*time.Hour)
 	if err != nil {

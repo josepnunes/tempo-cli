@@ -153,14 +153,20 @@ func TestFindLatestSession(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create an agent file (should be skipped)
-	os.WriteFile(filepath.Join(dir, "agent-sub.jsonl"), []byte("{}"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "agent-sub.jsonl"), []byte("{}"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	// Create a non-jsonl file (should be skipped)
-	os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("hi"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("hi"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	// Create a valid session file
 	sessionPath := filepath.Join(dir, "abc123.jsonl")
-	os.WriteFile(sessionPath, []byte("{}"), 0644)
+	if err := os.WriteFile(sessionPath, []byte("{}"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	got, err := findLatestSession(dir, 72*time.Hour)
 	if err != nil {
@@ -174,11 +180,15 @@ func TestFindLatestSession(t *testing.T) {
 func TestFindLatestSession_NoRecentFiles(t *testing.T) {
 	dir := t.TempDir()
 	sessionPath := filepath.Join(dir, "old.jsonl")
-	os.WriteFile(sessionPath, []byte("{}"), 0644)
+	if err := os.WriteFile(sessionPath, []byte("{}"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	// Set mod time to 5 days ago
 	old := time.Now().Add(-5 * 24 * time.Hour)
-	os.Chtimes(sessionPath, old, old)
+	if err := os.Chtimes(sessionPath, old, old); err != nil {
+		t.Fatal(err)
+	}
 
 	_, err := findLatestSession(dir, 72*time.Hour)
 	if err == nil {

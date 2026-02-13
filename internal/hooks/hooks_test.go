@@ -10,7 +10,9 @@ import (
 func setupFakeRepo(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, ".git", "hooks"), 0755)
+	if err := os.MkdirAll(filepath.Join(dir, ".git", "hooks"), 0755); err != nil {
+		t.Fatal(err)
+	}
 	return dir
 }
 
@@ -73,7 +75,9 @@ func TestInstall_AppendToExistingHook(t *testing.T) {
 
 	// Write an existing hook (e.g., from husky)
 	existing := "#!/bin/sh\necho 'husky hook'\n"
-	os.WriteFile(hookPath, []byte(existing), 0755)
+	if err := os.WriteFile(hookPath, []byte(existing), 0755); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := Install(repo); err != nil {
 		t.Fatal(err)
@@ -98,7 +102,9 @@ func TestInstall_ReplaceExistingTempoSection(t *testing.T) {
 
 	// Write a hook that already has a Tempo section
 	existing := "#!/bin/sh\necho 'other hook'\n" + startMarker + "\nold tempo content\n" + endMarker + "\n"
-	os.WriteFile(hookPath, []byte(existing), 0755)
+	if err := os.WriteFile(hookPath, []byte(existing), 0755); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := Install(repo); err != nil {
 		t.Fatal(err)
@@ -128,8 +134,12 @@ func TestInstall_ReplaceExistingTempoSection(t *testing.T) {
 func TestInstall_Idempotent(t *testing.T) {
 	repo := setupFakeRepo(t)
 
-	Install(repo)
-	Install(repo)
+	if err := Install(repo); err != nil {
+		t.Fatal(err)
+	}
+	if err := Install(repo); err != nil {
+		t.Fatal(err)
+	}
 
 	data, _ := os.ReadFile(filepath.Join(repo, ".git", "hooks", "post-commit"))
 	content := string(data)
@@ -144,7 +154,9 @@ func TestUninstall_RemovesTempoSection(t *testing.T) {
 	hookPath := filepath.Join(repo, ".git", "hooks", "post-commit")
 
 	existing := "#!/bin/sh\necho 'other'\n" + startMarker + "\ntempo stuff\n" + endMarker + "\n"
-	os.WriteFile(hookPath, []byte(existing), 0755)
+	if err := os.WriteFile(hookPath, []byte(existing), 0755); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := Uninstall(repo); err != nil {
 		t.Fatal(err)
@@ -169,7 +181,9 @@ func TestUninstall_DeletesFileIfOnlyTempo(t *testing.T) {
 	hookPath := filepath.Join(repo, ".git", "hooks", "post-commit")
 
 	content := "#!/bin/sh\n" + startMarker + "\ntempo stuff\n" + endMarker + "\n"
-	os.WriteFile(hookPath, []byte(content), 0755)
+	if err := os.WriteFile(hookPath, []byte(content), 0755); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := Uninstall(repo); err != nil {
 		t.Fatal(err)
@@ -190,7 +204,9 @@ func TestUninstall_NoopWhenNoHook(t *testing.T) {
 func TestUninstall_NoopWhenNoTempoSection(t *testing.T) {
 	repo := setupFakeRepo(t)
 	hookPath := filepath.Join(repo, ".git", "hooks", "post-commit")
-	os.WriteFile(hookPath, []byte("#!/bin/sh\necho 'other'\n"), 0755)
+	if err := os.WriteFile(hookPath, []byte("#!/bin/sh\necho 'other'\n"), 0755); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := Uninstall(repo); err != nil {
 		t.Fatal(err)
@@ -209,7 +225,9 @@ func TestIsInstalled(t *testing.T) {
 		t.Error("should not be installed initially")
 	}
 
-	Install(repo)
+	if err := Install(repo); err != nil {
+		t.Fatal(err)
+	}
 
 	if !IsInstalled(repo) {
 		t.Error("should be installed after Install()")
@@ -228,7 +246,9 @@ func TestEnsureGitignore_CreatesNew(t *testing.T) {
 
 func TestEnsureGitignore_AppendsToExisting(t *testing.T) {
 	repo := setupFakeRepo(t)
-	os.WriteFile(filepath.Join(repo, ".gitignore"), []byte("node_modules/\n"), 0644)
+	if err := os.WriteFile(filepath.Join(repo, ".gitignore"), []byte("node_modules/\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	ensureGitignore(repo)
 
