@@ -8,7 +8,7 @@ Tempo CLI uses three detection strategies, applied in order of confidence:
 
 | Strategy | Confidence | How it works |
 |----------|-----------|--------------|
-| **Session file matching** | High | Parses local AI tool session data (Claude Code JSONL, Aider history) to identify exactly which files the AI wrote, then intersects with your committed files |
+| **Session file matching** | High | Parses local AI tool session data (Claude Code JSONL, Codex JSONL, Aider history) to identify exactly which files the AI wrote, then intersects with your committed files |
 | **Process detection** | Medium | Checks if AI tool processes (Cursor, Copilot, etc.) are running at commit time |
 | **Git trailers** | Medium | Parses `Co-Authored-By` trailers in commit messages |
 
@@ -67,7 +67,7 @@ tempo-cli test
 | Aider | Yes | Yes | Yes |
 | Cursor | — | Yes | Yes |
 | GitHub Copilot | — | Yes | Yes |
-| Codex | — | Yes | — |
+| Codex | Yes | Yes | — |
 
 ## Example output
 

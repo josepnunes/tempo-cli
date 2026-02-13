@@ -90,6 +90,25 @@ func Detect(repoRoot string) (*Attribution, error) {
 		}
 	}
 
+	// Codex
+	if session, err := detectCodex(repoRoot, maxAge); err == nil && session != nil {
+		matched := intersect(session.FilesWritten, committedSet)
+		if len(matched) > 0 {
+			fileMatchDetected[ToolCodex] = true
+			attr.Detections = append(attr.Detections, Detection{
+				Tool:               ToolCodex,
+				Confidence:         ConfidenceHigh,
+				Method:             MethodFileMatch,
+				FilesMatched:       matched,
+				FilesCommitted:     len(committedFiles),
+				AIFiles:            len(matched),
+				Model:              session.Model,
+				TokenUsage:         session.TotalTokens,
+				SessionDurationSec: session.SessionDurationSec,
+			})
+		}
+	}
+
 	// Strategy 2: Process detection (MEDIUM confidence)
 	for _, tool := range detectProcesses() {
 		if !fileMatchDetected[tool] {
