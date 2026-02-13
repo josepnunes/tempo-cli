@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-const defaultEndpoint = "https://api.tempo.dev"
+const defaultEndpoint = "https://api.usetempo.dev"
 
 // Config holds the Tempo CLI configuration stored at ~/.tempo/config.json.
 type Config struct {

@@ -106,7 +106,7 @@ func Sync(repoRoot string, version string) error {
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	req, err := http.NewRequest("POST", cfg.Endpoint+"/api/v1/attributions", bytes.NewReader(body))
+	req, err := http.NewRequest("POST", cfg.Endpoint+"/v1/attributions", bytes.NewReader(body))
 	if err != nil {
 		return nil
 	}
