@@ -46,7 +46,7 @@ tempo-cli enable
 # Verify detection works
 tempo-cli test
 
-# That's it! Attribution runs automatically on every commit.
+# That's it — attribution runs automatically on every commit.
 ```
 
 ## Commands
